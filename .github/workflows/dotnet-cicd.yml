@@ -1,0 +1,92 @@
+# This workflow will build a .NET project
+# For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-net
+
+name: .NET
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+env:
+  SOLUTION_PATH: BergwachtDashboardMonitor/BergwachtDashboardMonitor.sln
+  WORKER_PROJECT: BergwachtDashboardMonitor/YourWorkerService.csproj
+  DOTNET_VERSION: 9.0.x
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        include:
+          - os: ubuntu-latest
+            rid: linux-x64
+            output: publish-linux
+          - os: windows-latest
+            rid: win-x64
+            output: publish-windows
+
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Restore dependencies
+        run: dotnet restore ${{ env.SOLUTION_PATH }}
+
+      - name: Build
+        run: dotnet build ${{ env.SOLUTION_PATH }} --configuration Release --no-restore
+
+      - name: Run tests
+        run: dotnet test ${{ env.SOLUTION_PATH }} --configuration Release --no-build
+
+      - name: Publish self-contained binaries
+        run: >
+          dotnet publish ${{ env.WORKER_PROJECT }}
+          --configuration Release
+          -r ${{ matrix.rid }}
+          --self-contained true
+          -p:PublishSingleFile=true
+          -p:IncludeNativeLibrariesForSelfExtract=true
+          -p:PublishTrimmed=true
+          --output ${{ matrix.output }}
+
+      - name: Archive binaries as tar.gz (Linux only)
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+            cd ${{ matrix.output }}
+            tar -czvf ../../${{ matrix.rid }}-release.tar.gz .
+
+      - name: Archive binaries as zip (Windows only)
+        if: matrix.os == 'windows-latest'
+        run: |
+            cd ${{ matrix.output }}
+            powershell Compress-Archive -Path * -DestinationPath ../../${{ matrix.rid }}-release.zip
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/')
+
+    steps:
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: Release ${{ github.ref_name }}
+          files: |
+            artifacts/linux-x64-release/linux-x64-release.zip
+            artifacts/win-x64-release/win-x64-release.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
