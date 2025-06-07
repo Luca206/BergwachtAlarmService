@@ -11,7 +11,7 @@ on:
 
 env:
   SOLUTION_PATH: BergwachtDashboardMonitor/BergwachtDashboardMonitor.sln
-  WORKER_PROJECT: BergwachtDashboardMonitor/YourWorkerService.csproj
+  WORKER_PROJECT: BergwachtDashboardMonitor/AlarmService.AlarmService.csproj
   DOTNET_VERSION: 9.0.x
 
 jobs:
