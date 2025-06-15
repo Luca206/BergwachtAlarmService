@@ -85,7 +85,7 @@ jobs:
           tag_name: ${{ github.ref_name }}
           name: Release ${{ github.ref_name }}
           files: |
-            artifacts/linux-x64-release/linux-x64-release.zip
-            artifacts/win-x64-release/win-x64-release.zip
+            artifacts/linux-x64-release.tar.gz
+            artifacts/win-x64-release.zip
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
