@@ -72,7 +72,6 @@ public class GraphQlQueryService
         this.Logger.LogDebug("Building GraphQL query for alarms...");
         
         var timestamp = DateTime.UtcNow.AddSeconds(- this.AlarmSettings.IntervalToCheckForAlarmsInSec);
-        timestamp = DateTime.Parse("2025-05-30T20:46:12.206Z");
         this.Variables["originatedAfter"] = timestamp.ToString("yyyy-MM-ddTHH:mm:ss.fffZ");
         
         return $@"
