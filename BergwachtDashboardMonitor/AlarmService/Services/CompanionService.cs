@@ -1,5 +1,6 @@
 using System.Text;
 using System.Text.Json;
+using AlarmService.Dtos;
 using AlarmService.Globals;
 
 namespace AlarmService.Services;
@@ -45,7 +46,7 @@ public class CompanionService
     /// Checks if an alarm is detected by sending a GraphQL request to the companion service.
     /// </summary>
     /// <returns>A task symbolizing an async operation with a boolean value indicating whether a task was detected or not.</returns>
-    public async Task<bool> CheckForAlarms()
+    public async Task<IReadOnlyCollection<DetectedAlarm>?> CheckForAlarms()
     {
         this.Logger.LogDebug("Checking for alarms...");
 
@@ -55,7 +56,7 @@ public class CompanionService
 
         if (string.IsNullOrEmpty(responseMessage))
         {
-            return false;
+            return null;
         }
 
         this.Logger.LogTrace(responseMessage);
@@ -65,13 +66,13 @@ public class CompanionService
         if (!this.ValidateJson(responseJson, out var resultsElement))
         {
             this.Logger.LogWarning("Unexpected JSON structure in response.");
-            return false;
+            return null;
         }
         
         if (resultsElement.GetArrayLength() == 0)
         {
             this.Logger.LogInformation("No alarms detected.");
-            return false;
+            return null;
         }
         
         this.Logger.LogDebug("Found {Count} alarms in the response.", resultsElement.GetArrayLength());
@@ -80,7 +81,7 @@ public class CompanionService
         if (!alarms.Any())
         {
             this.Logger.LogDebug("No Alarms match the filter criteria.");
-            return false;
+            return null;
         }
         this.Logger.LogInformation("Alarms detected!");
         this.Logger.LogDebug("Number of alarms matching the filter criteria: {Count}", alarms.Count);
@@ -88,7 +89,7 @@ public class CompanionService
         {
             this.Logger.LogInformation($"Alarm detected: {alarm.Id}");
         }
-        return true;
+        return alarms;
     }
 
     /// <summary>

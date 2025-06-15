@@ -16,4 +16,9 @@ public class DetectedAlarm
     /// Gets or sets the timestamp when the alarm was received.
     /// </summary>
     public DateTime ReceivedTime { get; set; }
+    
+    /// <summary>
+    /// Gets or sets the timestamp when the alarm will expire so that the monitor can be turned off.
+    /// </summary>
+    public DateTime ExpirationTime { get; set; }
 }

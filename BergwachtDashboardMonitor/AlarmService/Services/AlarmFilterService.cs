@@ -13,16 +13,23 @@ public class AlarmFilterService
     private ILogger<AlarmFilterService> Logger { get; set; }
 
     /// <summary>
-    /// Gets or sets the settings for alarms.
+    /// Gets or sets the settings for filtering alarms.
     /// </summary>
     private FilterSettings FilterSettings { get; set; }
+    
+    /// <summary>
+    /// Gets or sets the settings for alarms.
+    /// </summary>
+    private AlarmSettings AlarmSettings { get; set; }
 
     public AlarmFilterService(
         ILogger<AlarmFilterService> logger,
-        IOptions<FilterSettings> filterSettings)
+        IOptions<FilterSettings> filterSettings,
+        IOptions<AlarmSettings> alarmSettings)
     {
         this.Logger = logger;
         this.FilterSettings = filterSettings.Value;
+        this.AlarmSettings = alarmSettings.Value;
     }
 
     public IReadOnlyCollection<DetectedAlarm> FilterAlarmsOfJsonElement(JsonElement jsonElement)
@@ -127,11 +134,14 @@ public class AlarmFilterService
             return null;
         }
 
+        var alarmTimeStamp = jsonElement.GetProperty("originatedAt").GetDateTime();
+        
         return new DetectedAlarm
         {
             Id = id,
-            AlarmTime = jsonElement.GetProperty("originatedAt").GetDateTime(),
-            ReceivedTime = DateTime.UtcNow // Assuming the received time is now
+            AlarmTime = alarmTimeStamp,
+            ReceivedTime = DateTime.UtcNow, // Assuming the received time is now
+            ExpirationTime = alarmTimeStamp.AddSeconds(this.AlarmSettings.KeepMonitorTurnedOnInSec)
         };
     }
 }

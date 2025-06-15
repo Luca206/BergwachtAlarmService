@@ -1,5 +1,6 @@
 using AlarmService.Services;
 using AlarmService.Settings;
+using Serilog;
 
 namespace AlarmService;
 
@@ -7,18 +8,34 @@ public class Program
 {
     public static void Main(string[] args)
     {
+        var environment = Environment.GetEnvironmentVariable("DOTNET_ENVIRONMENT") ?? "Production";
+        
         var builder = Host.CreateApplicationBuilder(args);
         
         ConfigureAppSettings(builder);
         
-        ConfigureLogging(builder.Services);
+        ConfigureLogging(builder);
         ConfigureHttpClient(builder.Services);
         
         ConfigureServices(builder.Services);
 
         var host = builder.Build();
-        host.Run();
+        
+        try
+        {
+            Log.Information("Starting host in {Env}", environment);
+            host.Run();
+        }
+        catch (Exception ex)
+        {
+            Log.Fatal(ex, "Unhandled exception");
+        }
+        finally
+        {
+            Log.CloseAndFlush();
+        }
     }
+    
     
     /// <summary>
     /// Configures the application settings.
@@ -26,14 +43,20 @@ public class Program
     /// <param name="builder">The WebAssembly host builder.</param>
     private static void ConfigureAppSettings(HostApplicationBuilder builder)
     {
-        builder.Services.Configure<CompanionSettings>(builder.Configuration.GetSection("ServerOptions"));
+        builder.Services.Configure<CompanionSettings>(builder.Configuration.GetSection("BackendBWBCompanionSettings"));
         builder.Services.Configure<AlarmSettings>(builder.Configuration.GetSection("AlarmSettings"));
         builder.Services.Configure<FilterSettings>(builder.Configuration.GetSection("Filter"));
     }
 
-    private static void ConfigureLogging(IServiceCollection services)
+    private static void ConfigureLogging(HostApplicationBuilder builder)
     {
-        services.AddLogging(configure => configure.AddConsole());
+        Log.Logger = new LoggerConfiguration()
+            .ReadFrom.Configuration(builder.Configuration)
+            .Enrich.FromLogContext()
+            .CreateLogger();
+
+        builder.Logging.ClearProviders(); // Entfernt Default Logging
+        builder.Logging.AddSerilog();
     }
 
     private static void ConfigureHttpClient(IServiceCollection services)
