@@ -1,0 +1,13 @@
+[Unit]
+Description=.NET Worker Service to monitor alarms in the Bergwacht Dashboard
+After=network.target
+
+[Service]
+WorkingDirectory=/opt/BergwachtDashboardMonitor
+ExecStart=/opt/BergwachtDashboardMonitor/AlarmService --environment "Production"
+Restart=always
+RestartSec=10
+Environment=DOTNET_ENVIRONMENT=Production
+
+[Install]
+WantedBy=multi-user.target
