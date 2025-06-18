@@ -10,8 +10,8 @@ on:
     branches: [ "main" ]
 
 env:
-  SOLUTION_PATH: BergwachtDashboardMonitor/BergwachtDashboardMonitor.sln
-  WORKER_PROJECT: BergwachtDashboardMonitor/AlarmService/AlarmService.csproj
+  SOLUTION_PATH: src/BergwachtDashboardMonitor.sln
+  WORKER_PROJECT: src/AlarmService/AlarmService.csproj
   DOTNET_VERSION: 9.0.x
 
 jobs:
