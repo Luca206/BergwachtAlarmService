@@ -1,5 +1,6 @@
 using AlarmService.Settings;
 using Microsoft.Extensions.Options;
+using Serilog;
 
 namespace AlarmService.Services;
 
@@ -30,7 +31,7 @@ public class GraphQlQueryService
         { "originatedAfter", "timestamp" },
         { "filter", new Dictionary<string, object>
             {
-                { "subkind", new Dictionary<string, string> { { "Eq", "CLOSED" } } }
+                { "subkind", new Dictionary<string, string> { { "notEq", "CLOSED" } } }
             }
         }
     };
@@ -72,6 +73,7 @@ public class GraphQlQueryService
         this.Logger.LogDebug("Building GraphQL query for alarms...");
         
         var timestamp = DateTime.UtcNow.AddSeconds(- this.AlarmSettings.IntervalToCheckForAlarmsInSec);
+        Log.Information("Setting originatedAfter to {Timestamp}", timestamp.ToString("yyyy-MM-ddTHH:mm:ss.fffZ"));
         this.Variables["originatedAfter"] = timestamp.ToString("yyyy-MM-ddTHH:mm:ss.fffZ");
         
         return $@"
