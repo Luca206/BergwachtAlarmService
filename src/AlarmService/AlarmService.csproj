@@ -1,7 +1,13 @@
 <Project Sdk="Microsoft.NET.Sdk.Worker">
 
     <PropertyGroup>
+        <OutputType>exe</OutputType>
         <TargetFramework>net9.0</TargetFramework>
+        <PublishSingleFile>true</PublishSingleFile>
+        <SelfContained>true</SelfContained>
+        <RuntimeIdentifier>linux-x64</RuntimeIdentifier>
+        <PublishTrimmed>false</PublishTrimmed>
+        <IncludeAllContentForSelfExtract>true</IncludeAllContentForSelfExtract>
         <Nullable>enable</Nullable>
         <ImplicitUsings>enable</ImplicitUsings>
         <UserSecretsId>dotnet-AlarmService-7a654bd9-f14d-4edf-9ef3-36bd8b794a0f</UserSecretsId>
@@ -18,7 +24,7 @@
     </ItemGroup>
 
     <ItemGroup>
-      <Content Update="appsettings.prod.json">
+      <Content Update="appsettings*.json">
         <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
         <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
         <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>

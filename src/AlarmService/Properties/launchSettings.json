@@ -12,7 +12,7 @@
       "commandName": "Project",
       "dotnetRunMessages": true,
       "environmentVariables": {
-        "DOTNET_ENVIRONMENT": "prod"
+        "DOTNET_ENVIRONMENT": "Production"
       }
     }
   }

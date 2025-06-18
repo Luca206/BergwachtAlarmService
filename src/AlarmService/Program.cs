@@ -51,12 +51,16 @@ public class Program
     private static void ConfigureLogging(HostApplicationBuilder builder)
     {
         Log.Logger = new LoggerConfiguration()
-            .ReadFrom.Configuration(builder.Configuration)
+            .WriteTo.Console()
+            .WriteTo.File(
+                path: "logs/log-.txt",
+                rollingInterval: RollingInterval.Day,
+                outputTemplate: "[{Timestamp:HH:mm:ss} {Level:u3}] {Message:lj}{NewLine}{Exception}")
             .Enrich.FromLogContext()
             .CreateLogger();
 
         builder.Logging.ClearProviders(); // Entfernt Default Logging
-        builder.Logging.AddSerilog();
+        builder.Logging.AddSerilog(Log.Logger, dispose: true);
     }
 
     private static void ConfigureHttpClient(IServiceCollection services)
