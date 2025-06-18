@@ -3,8 +3,8 @@ Description=.NET Worker Service to monitor alarms in the Bergwacht Dashboard
 After=network.target
 
 [Service]
-WorkingDirectory=/opt/BergwachtDashboardMonitor
-ExecStart=/opt/BergwachtDashboardMonitor/AlarmService --environment "Production"
+WorkingDirectory=/opt/dashboardalarmservice
+ExecStart=/opt/dashboardalarmservice/AlarmService
 Restart=always
 RestartSec=10
 Environment=DOTNET_ENVIRONMENT=Production
