@@ -16,7 +16,7 @@ public class AlarmFilterService
     /// Gets or sets the settings for filtering alarms.
     /// </summary>
     private FilterSettings FilterSettings { get; set; }
-    
+
     /// <summary>
     /// Gets or sets the settings for alarms.
     /// </summary>
@@ -77,24 +77,65 @@ public class AlarmFilterService
     /// </summary>
     /// <param name="alarm">The alarm to filter.</param>
     /// <param name="filterCriteriaList">A collection with the filter criteria.</param>
-    /// <returns>A boolean value indicating whether a alarm was found matching the filter or not.</returns>
+    /// <returns>A boolean value indicating whether an alarm was found matching the filter or not.</returns>
     private bool FilterElements(JsonElement alarm, ICollection<FilterCriteria> filterCriteriaList)
     {
+        bool returnValue = false;
+
+        if (filterCriteriaList.Count == 0)
+        {
+            this.Logger.LogDebug("No filter criteria provided, returning true.");
+            return true; // No filters means everything matches
+        }
+
         foreach (var filterCriteria in filterCriteriaList)
         {
-            var steps = filterCriteria.Property.Split('.');
             var temp = alarm;
+            var steps = filterCriteria.Property.Split('.');
+            var checkedSteps = new List<string>();
             foreach (var step in steps)
             {
-                if (temp.TryGetProperty(step, out var value))
+                if (temp.ValueKind == JsonValueKind.Array)
                 {
-                    temp = value;
+                    foreach (var entry in temp.EnumerateArray())
+                    {
+                        var subFilter = filterCriteria.Property;
+                        if (checkedSteps.Any())
+                        {
+                            subFilter = filterCriteria.Property
+                                .Replace($"{string.Join(".", checkedSteps)}.", string.Empty);
+                        }
+                        
+                        var subFilterCriteria = new FilterCriteria
+                        {
+                            Property = subFilter,
+                            Value = filterCriteria.Value
+                        };
+                        var result = this.FilterElements(entry, new List<FilterCriteria>() { subFilterCriteria });
+
+                        if (result)
+                        {
+                            this.Logger.LogDebug(
+                                $"Array includes Alarm matching the criteria: \"{filterCriteria.Property} = {filterCriteria.Value}\"");
+                            return true; // Found a match in the array
+                        }
+                    }
                 }
                 else
                 {
-                    this.Logger.LogDebug($"Property '{step}' not found in alarm data.");
-                    return false;
+                    if (temp.TryGetProperty(step, out var value))
+                    {
+                        temp = value;
+                    }
+                    else
+                    {
+                        this.Logger.LogDebug($"Property '{step}' not found in alarm data.");
+                        returnValue = false;
+                    }
                 }
+
+
+                checkedSteps.Add(step);
             }
 
             if (temp.ValueKind == JsonValueKind.String
@@ -104,9 +145,26 @@ public class AlarmFilterService
                     $"Alarm matches criteria: \"{filterCriteria.Property} = {filterCriteria.Value}\"");
                 return true;
             }
+
+            if (temp.ValueKind == JsonValueKind.Number
+                && temp.GetInt32() == int.Parse(filterCriteria.Value))
+            {
+                this.Logger.LogDebug(
+                    $"Alarm matches criteria: \"{filterCriteria.Property} = {filterCriteria.Value}\"");
+                return true;
+            }
+
+            if (temp.ValueKind == JsonValueKind.True
+                && bool.TryParse(filterCriteria.Value, out var boolValue)
+                && temp.GetBoolean() == boolValue)
+            {
+                this.Logger.LogDebug(
+                    $"Alarm matches criteria: \"{filterCriteria.Property} = {filterCriteria.Value}\"");
+                return true;
+            }
         }
 
-        return false;
+        return returnValue;
     }
 
     /// <summary>
@@ -117,7 +175,7 @@ public class AlarmFilterService
     private DetectedAlarm? CreateDetectedAlarmFromJsonElement(JsonElement jsonElement)
     {
         int id;
-        
+
         if (jsonElement.TryGetProperty("id", out var idElement)
             && idElement.ValueKind == JsonValueKind.String)
         {
@@ -127,6 +185,7 @@ public class AlarmFilterService
                 this.Logger.LogWarning("Alarm ID is null or empty.");
                 return null;
             }
+
             id = int.Parse(idString);
         }
         else
@@ -135,7 +194,7 @@ public class AlarmFilterService
         }
 
         var alarmTimeStamp = jsonElement.GetProperty("originatedAt").GetDateTime();
-        
+
         return new DetectedAlarm
         {
             Id = id,
