@@ -50,16 +50,18 @@ public class Program
 
     private static void ConfigureLogging(HostApplicationBuilder builder)
     {
+        Directory.CreateDirectory("logs");
+        
         Log.Logger = new LoggerConfiguration()
+            .Enrich.FromLogContext()
             .WriteTo.Console()
             .WriteTo.File(
                 path: "logs/log-.txt",
                 rollingInterval: RollingInterval.Day,
                 outputTemplate: "[{Timestamp:HH:mm:ss} {Level:u3}] {Message:lj}{NewLine}{Exception}")
-            .Enrich.FromLogContext()
             .CreateLogger();
 
-        builder.Logging.ClearProviders(); // Entfernt Default Logging
+        builder.Logging.ClearProviders();
         builder.Logging.AddSerilog(Log.Logger, dispose: true);
     }
 
