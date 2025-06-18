@@ -365,3 +365,4 @@ MigrationBackup/
 
 # Rider
 .idea/
+deploy/AlarmService
