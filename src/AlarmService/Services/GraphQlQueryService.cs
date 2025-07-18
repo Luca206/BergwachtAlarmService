@@ -31,7 +31,7 @@ public class GraphQlQueryService
         { "originatedAfter", "timestamp" },
         { "filter", new Dictionary<string, object>
             {
-                { "subkind", new Dictionary<string, string> { { "notEq", "CLOSED" } } }
+                { "subkind", new Dictionary<string, string> { { "NotEq", "CLOSED" } } }
             }
         }
     };

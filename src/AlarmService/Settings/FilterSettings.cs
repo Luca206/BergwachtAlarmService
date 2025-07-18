@@ -1,14 +1,17 @@
+using System.Text.Json.Serialization;
+
 namespace AlarmService.Settings;
 
 public class FilterSettings
 {
     /// <summary>
-    /// Gets or sets the list of filter criteria to include.
+    /// Gets or sets the file path to the filter configuration file.
     /// </summary>
-    public List<FilterCriteria> Includes { get; set; } = new();
+    public string FilterFilePath { get; set; } = string.Empty;
     
     /// <summary>
-    /// Gets or sets the list of filter criteria to exclude.
+    /// Gets or sets a collection of filter entries that define the filtering logic.
     /// </summary>
-    public List<FilterCriteria> Excludes { get; set; } = new();
+    [JsonPropertyName("Entries")]
+    public IReadOnlyList<FilterEntry> FilterEntries { get; set; } = [];
 }

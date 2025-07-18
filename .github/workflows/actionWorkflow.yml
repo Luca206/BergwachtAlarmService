@@ -1,0 +1,76 @@
+name: Build & Publish .NET App
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+
+env:
+  SOLUTION_PATH: src/BergwachtDashboardMonitor.sln
+  WORKER_PROJECT: src/AlarmService/AlarmService.csproj
+  DOTNET_VERSION: 9.0.x
+
+jobs:
+  test-and-publish:
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Run Unit Tests
+        run: dotnet test --verbosity normal
+
+      - name: Publish for Linux
+        run: dotnet publish ${{ env.WORKER_PROJECT }} -c Release -r linux-x64 --self-contained true /p:PublishSingleFile=true -o ./publish/linux
+
+      - name: Publish for Windows
+        run: dotnet publish ${{ env.WORKER_PROJECT }} -c Release -r win-x64 --self-contained true /p:PublishSingleFile=true -o ./publish/windows
+
+      - name: Get Version (from project)
+        id: get_version
+        run: |
+          VERSION=$(dotnet msbuild ${{ env.WORKER_PROJECT }} -nologo -t:GetAssemblyVersion -v:q | tail -1)
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ steps.get_version.outputs.version }}
+          name: "Release v${{ steps.get_version.outputs.version }}"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload Linux Asset
+        uses: softprops/action-gh-release@v2
+        with:
+          files: ./publish/linux/*
+
+      - name: Upload Windows Asset
+        uses: softprops/action-gh-release@v2
+        with:
+          files: ./publish/windows/*
+
+  test-and-build-develop:
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/develop'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Run Unit Tests
+        run: dotnet test --verbosity normal
+
+      - name: Publish Check
+        run: dotnet publish ${{ env.WORKER_PROJECT }} -c Release -r linux-x64 --self-contained false -o ./publish/dev-linux

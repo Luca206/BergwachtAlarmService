@@ -60,7 +60,7 @@ public class CompanionService
         }
 
         this.Logger.LogTrace(responseMessage);
-
+        
         var responseJson = JsonDocument.Parse(responseMessage);
 
         if (!this.ValidateJson(responseJson, out var resultsElement))

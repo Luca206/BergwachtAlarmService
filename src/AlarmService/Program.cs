@@ -45,7 +45,7 @@ public class Program
     {
         builder.Services.Configure<CompanionSettings>(builder.Configuration.GetSection("BackendBWBCompanionSettings"));
         builder.Services.Configure<AlarmSettings>(builder.Configuration.GetSection("AlarmSettings"));
-        builder.Services.Configure<FilterSettings>(builder.Configuration.GetSection("Filter"));
+        builder.Services.Configure<FilterSettings>(builder.Configuration.GetSection("FilterSettings"));
     }
 
     private static void ConfigureLogging(HostApplicationBuilder builder)

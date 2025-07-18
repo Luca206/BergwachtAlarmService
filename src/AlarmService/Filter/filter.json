@@ -1,0 +1,26 @@
+{
+  "Filter": {
+    "Entries": [
+      {
+        "PropertyPath": "payload.data.massAlertUnits",
+        "Value": "Bergrettungswache Kempten",
+        "IncludeResult": true
+      },
+      {
+        "PropertyPath": "payload.data.vehicles.name",
+        "Value": "Bergrettungswache Kempten",
+        "IncludeResult": true
+      },
+      {
+        "PropertyPath": "payload.data.keyword",
+        "Value": "Manuell erstellter Einsatz",
+        "IncludeResult": true
+      },
+      {
+        "PropertyPath": "payload.bwb:notes.alias.tagValue",
+        "Value": "ECH",
+        "IncludeResult": false
+      }
+    ]
+  }
+}
