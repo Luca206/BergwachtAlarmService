@@ -35,21 +35,34 @@ jobs:
 
       - name: Prepare assets (rename + exclude .pdb)
         run: |
-          for file in ./publish/linux/*; do
-            ext="${file##*.}"
-            name="$(basename "$file")"
-            base="${name%.*}"
-            if [[ "$ext" == "pdb" ]]; then rm "$file"; continue; fi
-            mv "$file" "./publish/linux/${base}-linux.${ext}"
-          done
-          
-          for file in ./publish/windows/*; do
-            ext="${file##*.}"
-            name="$(basename "$file")"
-            base="${name%.*}"
-            if [[ "$ext" == "pdb" ]]; then rm "$file"; continue; fi
-            mv "$file" "./publish/windows/${base}-windows.${ext}"
-          done
+          rename_files() {
+            platform=$1
+            for file in ./publish/$platform/*; do
+              filename="$(basename -- "$file")"
+
+              # Skip .pdb files
+              if [[ "$filename" == *.pdb ]]; then
+                echo "Removing debug file: $file"
+                rm "$file"
+                continue
+              fi
+
+              # Determine extension
+              if [[ "$filename" == *.* ]]; then
+                base="${filename%.*}"
+                ext="${filename##*.}"
+                newname="${base}-${platform}.${ext}"
+              else
+                newname="${filename}-${platform}"
+              fi
+
+              echo "Renaming $file -> ./publish/$platform/$newname"
+              mv "$file" "./publish/$platform/$newname"
+            done
+          }
+
+          rename_files linux
+          rename_files windows
 
       - name: Get Version from commit
         id: get_version
