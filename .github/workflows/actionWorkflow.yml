@@ -48,7 +48,7 @@ jobs:
             ./publish/linux/*
             ./publish/windows/*
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GH_PAT }}
 
   test-and-build-develop:
     runs-on: ubuntu-latest
