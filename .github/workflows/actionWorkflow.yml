@@ -33,6 +33,24 @@ jobs:
       - name: Publish for Windows
         run: dotnet publish ${{ env.WORKER_PROJECT }} -c Release -r win-x64 --self-contained true /p:PublishSingleFile=true -o ./publish/windows
 
+      - name: Prepare assets (rename + exclude .pdb)
+        run: |
+          for file in ./publish/linux/*; do
+            ext="${file##*.}"
+            name="$(basename "$file")"
+            base="${name%.*}"
+            if [[ "$ext" == "pdb" ]]; then rm "$file"; continue; fi
+            mv "$file" "./publish/linux/${base}-linux.${ext}"
+          done
+          
+          for file in ./publish/windows/*; do
+            ext="${file##*.}"
+            name="$(basename "$file")"
+            base="${name%.*}"
+            if [[ "$ext" == "pdb" ]]; then rm "$file"; continue; fi
+            mv "$file" "./publish/windows/${base}-windows.${ext}"
+          done
+
       - name: Get Version from commit
         id: get_version
         run: |
