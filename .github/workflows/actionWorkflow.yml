@@ -33,29 +33,22 @@ jobs:
       - name: Publish for Windows
         run: dotnet publish ${{ env.WORKER_PROJECT }} -c Release -r win-x64 --self-contained true /p:PublishSingleFile=true -o ./publish/windows
 
-      - name: Get Version (from project)
+      - name: Get Version from commit
         id: get_version
         run: |
-          VERSION=$(dotnet msbuild ${{ env.WORKER_PROJECT }} -nologo -t:GetAssemblyVersion -v:q | tail -1)
+          VERSION=$(date +'%Y%m%d%H%M')-$(git rev-parse --short HEAD)
           echo "version=$VERSION" >> $GITHUB_OUTPUT
 
-      - name: Create Release
+      - name: Create Release and Upload Assets
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v${{ steps.get_version.outputs.version }}
-          name: "Release v${{ steps.get_version.outputs.version }}"
+          tag_name: ${{ steps.get_version.outputs.version }}
+          name: "Release ${{ steps.get_version.outputs.version }}"
+          files: |
+            ./publish/linux/*
+            ./publish/windows/*
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Upload Linux Asset
-        uses: softprops/action-gh-release@v2
-        with:
-          files: ./publish/linux/*
-
-      - name: Upload Windows Asset
-        uses: softprops/action-gh-release@v2
-        with:
-          files: ./publish/windows/*
 
   test-and-build-develop:
     runs-on: ubuntu-latest
@@ -72,5 +65,5 @@ jobs:
       - name: Run Unit Tests
         run: dotnet test ${{ env.SOLUTION_PATH }} --verbosity normal
 
-      - name: Publish Check
+      - name: Publish Check (non-self-contained)
         run: dotnet publish ${{ env.WORKER_PROJECT }} -c Release -r linux-x64 --self-contained false -o ./publish/dev-linux
