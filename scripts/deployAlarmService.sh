@@ -1,15 +1,31 @@
 #!/bin/bash
 
+# Standard: ARM64
+ARCH=$1
+if [[ "$ARCH" == "x64" ]]; then
+  RUNTIME="linux-x64"
+  echo "Using x64 architecture for deployment."
+elif [[ "$ARCH" == "arm64" || "$ARCH" == "" ]]; then
+  RUNTIME="linux-arm64"
+  echo "Using arm64 architecture for deployment."
+else
+  echo "Unknown architecture: '$ARCH'"
+  echo "Please use: ./deployAlarmService.sh [arm64|x64]"
+  exit 1
+fi
+
 # === Configuration ===
-SOLUTION_DIR="/home/luca/GitHub/Luca206/BergwachtDashboardMonitor"
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+SOLUTION_DIR="$(dirname "$SCRIPT_DIR")"
 PROJECT_PATH="$SOLUTION_DIR/src/AlarmService"
 PUBLISH_PATH="$SOLUTION_DIR/deploy/AlarmService"
 TARGET_DIR="/opt/dashboardalarmservice"
 SERVICE_NAME="dashboardalarmservice.service"
 EXECUTABLE_NAME="AlarmService"
-RUNTIME_ID="linux-x64"
+RUNTIME_ID="$RUNTIME"
 ENVIRONMENT="Production"
 
+echo "Starting deployment of Alarm Service..."
 # === 1. Publish the Project ===
 echo "Publishing .NET WorkerService..."
 dotnet publish "$PROJECT_PATH" \
