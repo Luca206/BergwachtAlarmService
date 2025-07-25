@@ -25,7 +25,7 @@ public class HttpRequestService
         return await this.SendRequestAsync(HttpMethod.Get, endpoint, parameters).ConfigureAwait(false);
     }
 
-    public async Task<HttpResponseMessage> PostAsync(
+    public virtual async Task<HttpResponseMessage> PostAsync(
         string endpoint,
         Dictionary<string, string>? parameters = null,
         HttpContent? content = null)
@@ -33,7 +33,7 @@ public class HttpRequestService
         return await this.SendRequestAsync(HttpMethod.Post, endpoint, parameters, content).ConfigureAwait(false);
     }
     
-    public Uri BuildCompleteRequestUrl(Uri baseUrl, string endpoint, Dictionary<string, string>? parameters)
+    public virtual Uri BuildCompleteRequestUrl(Uri baseUrl, string endpoint, Dictionary<string, string>? parameters)
     {
         if (baseUrl == null)
         {

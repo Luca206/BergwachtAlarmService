@@ -16,7 +16,7 @@ public class AlarmSettings
     /// Gets or sets the time in seconds to keep the monitor turned on after an alarm is detected.
     /// </summary>
     public int KeepMonitorTurnedOnInSec { get; set; }
-    
+
     /// <summary>
     /// Gets the interval of the requests in milliseconds.
     /// </summary>

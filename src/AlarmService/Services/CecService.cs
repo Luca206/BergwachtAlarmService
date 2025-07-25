@@ -5,11 +5,6 @@ namespace AlarmService.Services;
 public class CecService
 {
     /// <summary>
-    /// Gets a value indicating whether the monitor is currently turned on.
-    /// </summary>
-    public bool IsMonitorOn { get; private set; }
-    
-    /// <summary>
     /// Gets or sets the logger for the <see cref="CecService"/>.
     /// </summary>
     private ILogger<CecService> Logger { get; set; }
@@ -18,33 +13,27 @@ public class CecService
     {
         Logger = logger;
     }
+
     /// <summary>
     /// Sends the CEC command to turn on the device.
     /// </summary>
     public void TurnOn()
     {
         this.Logger.LogInformation("Turning on the device via CEC.");
-        // Implement logic to turn on the device using CEC
-        Console.WriteLine("Turning on the device via CEC.");
-        
         this.ExecuteCecCommand("on 0");
-        this.IsMonitorOn = true;
+        
     }
-    
+
     /// <summary>
     /// Sends the CEC command to turn off the device.
     /// </summary>
     public void TurnOff()
     {
         this.Logger.LogInformation("Turning off the device via CEC.");
-        // Implement logic to turn off the device using CEC
-        Console.WriteLine("Turning off the device via CEC.");
-        
         this.ExecuteCecCommand("standby 0");
-        this.IsMonitorOn = false;
     }
-    
-    private void ExecuteCecCommand(string command)
+
+    protected virtual void ExecuteCecCommand(string command)
     {
         try
         {
@@ -52,7 +41,49 @@ public class CecService
         }
         catch (Exception ex)
         {
-            Logger.LogError(ex, "Fehler beim Ausführen des CEC-Kommandos: {Command}", command);
+            Logger.LogError(ex, "Error while executing the CEC-Command: {Command}", command);
+        }
+    }
+
+    public async Task<bool> IsMonitorActive()
+    {
+        try
+        {
+            var startInfo = new ProcessStartInfo
+            {
+                FileName = "/bin/bash",
+                Arguments = "-c \"echo 'pow 0' | cec-client -s -d 1\"",
+                RedirectStandardOutput = true,
+                UseShellExecute = false,
+                CreateNoWindow = true
+            };
+
+            using var process = Process.Start(startInfo);
+            if (process == null)
+            {
+                Logger.LogError("Error starting cec-client process.");
+                return false;
+            }
+
+            var output = await process.StandardOutput.ReadToEndAsync();
+            await process.WaitForExitAsync();
+
+            if (output.Contains("power status: on", StringComparison.OrdinalIgnoreCase))
+            {
+                return true;
+            }
+            
+            if (output.Contains("power status: standby", StringComparison.OrdinalIgnoreCase))
+            {
+                return false;
+            }
+
+            throw new Exception("Could not determine power status from CEC output.");
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error while checking monitor status via CEC.");
+            return false;
         }
     }
 }

@@ -68,7 +68,7 @@ public class GraphQlQueryService
         this.AlarmSettings = alarmSettings.Value;
     }
     
-    public string BuildQuery()
+    public virtual string BuildQuery()
     {
         this.Logger.LogDebug("Building GraphQL query for alarms...");
         

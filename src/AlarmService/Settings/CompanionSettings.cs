@@ -12,6 +12,11 @@ public class CompanionSettings
     /// </summary>
     public string? AccessToken { get; set; }
     
+    /// <summary>
+    /// Gets or sets the dashboard token for the companion service.
+    /// </summary>
+    public string? DashboardToken { get; set; }
+    
     public Uri GetBaseUri()
     {
         if (string.IsNullOrEmpty(BaseUrl))

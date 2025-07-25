@@ -88,6 +88,7 @@ public class Program
         services.AddSingleton<CecService>();
         services.AddSingleton<CompanionService>();
         services.AddSingleton<GraphQlQueryService>();
+        services.AddSingleton<BrowserService>();
         services.AddHostedService<WorkerService>();
     }
 }

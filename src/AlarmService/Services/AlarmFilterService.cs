@@ -34,7 +34,7 @@ public class AlarmFilterService
         this.AlarmSettings = alarmSettings.Value;
     }
 
-    public IReadOnlyCollection<DetectedAlarm> FilterAlarmsOfJsonElement(JsonElement detectedAlarmsJson)
+    public virtual IReadOnlyCollection<DetectedAlarm> FilterAlarmsOfJsonElement(JsonElement detectedAlarmsJson)
     {
         this.FetchFilterSettings();
         var detectedAlarmsArray = detectedAlarmsJson.ToJsonArray();
