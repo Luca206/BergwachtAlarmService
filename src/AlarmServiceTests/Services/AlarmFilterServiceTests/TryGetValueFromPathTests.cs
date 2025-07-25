@@ -1,4 +1,3 @@
-using NUnit.Framework;
 using System.Text.Json.Nodes;
 using AlarmService.Services;
 using AlarmService.Settings;
