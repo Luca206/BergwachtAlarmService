@@ -37,7 +37,17 @@ public class CecService
     {
         try
         {
-            Process.Start("bash", $"-c \"echo '{command}' | cec-client -s -d 1\"");
+            this.Logger.LogDebug($"Executing CEC command: {command}");
+            var x = Process.Start("bash", $"-c \"echo '{command}' | cec-client -s -d 1\"");
+            x.WaitForExit();
+            if (x.ExitCode != 0)
+            {
+                Logger.LogError("CEC command failed with exit code: {ExitCode}", x.ExitCode);
+            }
+            else
+            {
+                Logger.LogInformation("CEC command executed successfully.");
+            }
         }
         catch (Exception ex)
         {
@@ -58,7 +68,9 @@ public class CecService
                 CreateNoWindow = true
             };
 
+            this.Logger.LogDebug("Checking monitor status via CEC.");
             using var process = Process.Start(startInfo);
+            
             if (process == null)
             {
                 Logger.LogError("Error starting cec-client process.");
@@ -67,14 +79,18 @@ public class CecService
 
             var output = await process.StandardOutput.ReadToEndAsync();
             await process.WaitForExitAsync();
+            
+            this.Logger.LogDebug($"CEC output: {output}");
 
             if (output.Contains("power status: on", StringComparison.OrdinalIgnoreCase))
             {
+                this.Logger.LogDebug("Monitor is active.");
                 return true;
             }
             
             if (output.Contains("power status: standby", StringComparison.OrdinalIgnoreCase))
             {
+                this.Logger.LogDebug("Monitor is in standby mode.");
                 return false;
             }
 
@@ -82,7 +98,7 @@ public class CecService
         }
         catch (Exception ex)
         {
-            Logger.LogError(ex, "Error while checking monitor status via CEC.");
+            Logger.LogError(ex, $"Error while checking monitor status via CEC. Exception-Message: {ex.Message}");
             return false;
         }
     }

@@ -85,12 +85,33 @@ public class WorkerService : BackgroundService
                             this.Logger.LogInformation("Alarm is active and Monitor off, turning on monitor.");
                             this.CecService.TurnOn();
                         }
+                        else
+                        {
+                            this.Logger.LogDebug("Alarm is active and Monitor on.");
+                        }
+                    }
+                    else
+                    {
+                        this.Logger.LogInformation(
+                            $"Alarm has expired, monitor will be turned off after the configured time. Expiration: {alarm.ExpirationTime}, now: {DateTime.Now}");
                     }
 
                     if (!activeAlarm && await this.CecService.IsMonitorActive().ConfigureAwait(false))
                     {
                         this.Logger.LogDebug("Alarm expired, turning off monitor.");
                         this.CecService.TurnOff();
+                    }
+                    else if (!activeAlarm)
+                    {
+                        this.Logger.LogInformation("Alarm expired, monitor is off.");
+                    }
+                    else if (activeAlarm && await this.CecService.IsMonitorActive().ConfigureAwait(false))
+                    {
+                        this.Logger.LogDebug("Active alarm detected, monitor is on.");
+                    }
+                    else
+                    {
+                        this.Logger.LogWarning("Something went wrong. Active alarm is true.");
                     }
                 }
             }
@@ -102,11 +123,16 @@ public class WorkerService : BackgroundService
                     this.Logger.LogDebug("No active alarms, turning off monitor.");
                     this.CecService.TurnOff();
                 }
+                else
+                {
+                    this.Logger.LogDebug("No active alarms, monitor is already off.");
+                }
             }
-
-            await Task.Delay(this.AlarmSettings.GetRequestIntervalInMilliseconds(), stoppingToken);
         }
+
+        Thread.Sleep(this.AlarmSettings.GetRequestIntervalInMilliseconds());
     }
+
 
     private void StartDashboard()
     {
