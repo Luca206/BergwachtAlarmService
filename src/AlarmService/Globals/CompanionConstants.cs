@@ -5,6 +5,8 @@ public static class CompanionConstants
     private static string AuthenticationUrl { get; set; }= "https://passport.services.bergwacht-bayern.org/oauth/import?token=";
     
     public static string DashboardUrl { get; set; } = "https://pages.services.bergwacht-bayern.org/dashboard";
+
+    public const string GraphQlUrl = "";
     
     public static string GetFullDashboardUrl(string? authToken, string? dashboardState)
     {

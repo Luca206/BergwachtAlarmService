@@ -14,6 +14,9 @@
     </PropertyGroup>
 
     <ItemGroup>
+        <PackageReference Include="Bwb.GraphQL.SystemTextJson" Version="1.0.0" />
+        <PackageReference Include="GraphQL.Client" Version="6.1.0" />
+        <PackageReference Include="GraphQL.Client.Serializer.SystemTextJson" Version="6.1.0" />
         <PackageReference Include="Microsoft.Extensions.Configuration" Version="9.0.6" />
         <PackageReference Include="Microsoft.Extensions.Hosting" Version="9.0.5"/>
         <PackageReference Include="Microsoft.Extensions.Http" Version="9.0.5" />

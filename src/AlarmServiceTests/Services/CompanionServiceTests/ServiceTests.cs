@@ -40,8 +40,8 @@ public class ServiceTests
         _service = new CompanionService(
             _loggerMock.Object,
             _queryServiceMock.Object,
-            _httpRequestServiceMock.Object,
-            _alarmFilterServiceMock.Object);
+            new Mock<IOptions<FilterSettings>>().Object,
+            new Mock<IOptions<AlarmSettings>>().Object);
     }
 
     [Test]

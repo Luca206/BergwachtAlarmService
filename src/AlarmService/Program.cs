@@ -4,6 +4,9 @@ using Serilog;
 
 namespace AlarmService;
 
+/// <summary>
+/// The main program.
+/// </summary>
 public class Program
 {
     public static void Main(string[] args)
@@ -43,9 +46,31 @@ public class Program
     /// <param name="builder">The WebAssembly host builder.</param>
     private static void ConfigureAppSettings(HostApplicationBuilder builder)
     {
+        // Load optional local secrets file (not committed) to avoid storing secrets in appsettings
+        var env = builder.Environment;
+        var configBuilder = new ConfigurationBuilder()
+            .SetBasePath(builder.Environment.ContentRootPath)
+            .AddJsonFile("appsettings.json", optional: true, reloadOnChange: true)
+            .AddJsonFile($"appsettings.{env.EnvironmentName}.json", optional: true, reloadOnChange: true)
+            .AddJsonFile("secrets.local.json", optional: true, reloadOnChange: true);
+
+        // Load user secrets in Development
+        if (env.IsDevelopment())
+        {
+            configBuilder.AddUserSecrets<Program>(optional: true);
+        }
+
+        configBuilder.AddEnvironmentVariables();
+
+        var configuration = configBuilder.Build();
+
+        // Replace builder.Configuration with the new configuration that includes secrets
+        builder.Configuration.AddConfiguration(configuration);
+
         builder.Services.Configure<CompanionSettings>(builder.Configuration.GetSection("BackendBWBCompanionSettings"));
         builder.Services.Configure<AlarmSettings>(builder.Configuration.GetSection("AlarmSettings"));
         builder.Services.Configure<FilterSettings>(builder.Configuration.GetSection("FilterSettings"));
+        builder.Services.Configure<TvSettings>(builder.Configuration.GetSection("TvSettings"));
     }
 
     private static void ConfigureLogging(HostApplicationBuilder builder)
@@ -85,10 +110,10 @@ public class Program
     private static void ConfigureServices(IServiceCollection services)
     {
         services.AddSingleton<AlarmFilterService>();
-        services.AddSingleton<CecService>();
         services.AddSingleton<CompanionService>();
         services.AddSingleton<GraphQlQueryService>();
         services.AddSingleton<BrowserService>();
+        services.AddSingleton<LgTvService>();
         services.AddHostedService<WorkerService>();
     }
 }

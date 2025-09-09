@@ -1,153 +1,102 @@
-using System.Text;
-using System.Text.Json;
-using AlarmService.Dtos;
-using AlarmService.Globals;
-
 namespace AlarmService.Services;
+
+using Dtos;
+using Bwb.GraphQL.Client;
+using Settings;
+using Microsoft.Extensions.Options;
 
 /// <summary>
 /// Class for the companion service. This service is responsible for detecting an incoming alarm.
 /// </summary>
 public class CompanionService
 {
-    /// <summary>
-    /// Gets or sets the logger for the <see cref="CompanionService"/>.
-    /// </summary>
-    private ILogger<CompanionService> Logger { get; }
+  /// <summary>
+  /// Gets or sets the logger for the <see cref="CompanionService"/>.
+  /// </summary>
+  private ILogger<CompanionService> Logger { get; }
 
-    /// <summary>
-    /// Gets or sets the GraphQL query service that is responsible for building GraphQL queries.
-    /// </summary>
-    private GraphQlQueryService QueryService { get; }
+  /// <summary>
+  /// Gets or sets the GraphQL query service that is responsible for building GraphQL queries.
+  /// </summary>
+  private GraphQlQueryService GraphQlQueryService { get; }
 
-    /// <summary>
-    /// Gets or sets the HTTP request service that is responsible for sending HTTP requests to the companion service.
-    /// </summary>
-    private HttpRequestService HttpRequestService { get; }
-    
-    /// <summary>
-    /// Gets or sets the service to filter alarms based on the configured criteria.
-    /// </summary>
-    private AlarmFilterService AlarmFilterService { get; }
+  /// <summary>
+  /// Gets or sets the settings for filtering alarms.
+  /// </summary>
+  private FilterSettings FilterSettings { get; set; }
 
-    public CompanionService(
-        ILogger<CompanionService> logger,
-        GraphQlQueryService queryService,
-        HttpRequestService httpRequestService,
-        AlarmFilterService alarmFilterService)
+  /// <summary>
+  /// Gets or sets the settings for alarms.
+  /// </summary>
+  private AlarmSettings AlarmSettings { get; set; }
+
+  public CompanionService(
+    ILogger<CompanionService> logger,
+    GraphQlQueryService graphQlQueryService,
+    IOptions<FilterSettings> filterSettings,
+    IOptions<AlarmSettings> alarmSettings)
+  {
+    this.Logger = logger;
+    this.GraphQlQueryService = graphQlQueryService;
+    this.AlarmSettings = alarmSettings.Value;
+    this.FilterSettings = filterSettings.Value;
+
+  }
+
+  /// <summary>
+  /// Checks if an alarm is detected by sending a GraphQL request to the companion service.
+  /// </summary>
+  /// <returns>A task symbolizing an async operation with a boolean value indicating whether a task was detected or not.</returns>
+  public async Task<IReadOnlyCollection<DetectedAlarm>> CheckForAlarms()
+  {
+    this.Logger.LogTrace("Checking for alarms...");
+    var allAlarms = await this.GraphQlQueryService.GetAllAlarmsAsync();
+
+    if (allAlarms.Count == 0)
     {
-        this.Logger = logger;
-        this.QueryService = queryService;
-        this.HttpRequestService = httpRequestService;
-        this.AlarmFilterService = alarmFilterService;
+      this.Logger.LogDebug("No alarms detected.");
+      return Array.Empty<DetectedAlarm>();
     }
 
-    /// <summary>
-    /// Checks if an alarm is detected by sending a GraphQL request to the companion service.
-    /// </summary>
-    /// <returns>A task symbolizing an async operation with a boolean value indicating whether a task was detected or not.</returns>
-    public async Task<IReadOnlyCollection<DetectedAlarm>?> CheckForAlarms()
+    // filter alarms
+    var filteredAlarms = this.FilterAlarms(allAlarms);
+
+    if (filteredAlarms.Count == 0)
     {
-        this.Logger.LogDebug("Checking for alarms...");
+      this.Logger.LogDebug("No alarms detected.");
+      return Array.Empty<DetectedAlarm>();
+    }
+    return filteredAlarms.Select(a => this.ConvertToDetectedAlarm(a))
+      .Where(a => a is not null)
+      .Select(a => a)
+      .Cast<DetectedAlarm>()
+      .ToList()
+      .AsReadOnly();
+  }
 
-        var query = this.QueryService.BuildQuery();
-
-        var responseMessage = await this.RequestGraphQlAsync(query).ConfigureAwait(false);
-
-        if (string.IsNullOrEmpty(responseMessage))
-        {
-            return null;
-        }
-
-        this.Logger.LogTrace(responseMessage);
-        
-        var responseJson = JsonDocument.Parse(responseMessage);
-
-        if (!this.ValidateJson(responseJson, out var resultsElement))
-        {
-            this.Logger.LogWarning("Unexpected JSON structure in response.");
-            return null;
-        }
-        
-        if (resultsElement.GetArrayLength() == 0)
-        {
-            this.Logger.LogInformation("No alarms detected.");
-            return null;
-        }
-        
-        this.Logger.LogDebug("Found {Count} alarms in the response.", resultsElement.GetArrayLength());
-        this.Logger.LogDebug("Filtering alarms based on criteria...");
-        var alarms = this.AlarmFilterService.FilterAlarmsOfJsonElement(resultsElement);
-        if (!alarms.Any())
-        {
-            this.Logger.LogDebug("No Alarms match the filter criteria.");
-            return null;
-        }
-        this.Logger.LogInformation("Alarms detected!");
-        this.Logger.LogDebug("Number of alarms matching the filter criteria: {Count}", alarms.Count);
-        foreach (var alarm in alarms)
-        {
-            this.Logger.LogInformation($"Alarm detected: {alarm.Id}");
-        }
-        return alarms;
+  private DetectedAlarm? ConvertToDetectedAlarm(Alarm alarm)
+  {
+    int id;
+    if (!int.TryParse(alarm.Id, out id))
+    {
+      this.Logger.LogWarning("The 'id' property is not an integer.");
+      return null;
     }
 
-    /// <summary>
-    /// Request the GraphQL endpoint of the companion service with the given query.
-    /// </summary>
-    /// <param name="query">The query.</param>
-    /// <returns>A task symbolizing an asynchronous operation with a sting containing the HttpResponse content if the request was successful or null.</returns>
-    private async Task<string?> RequestGraphQlAsync(string query)
+    var alarmTimestamp = DateTime.Parse(alarm.OriginatedAt.ToString());
+
+    return new DetectedAlarm()
     {
-        // build HTTP request to the companion service
-        var content = new StringContent(query, Encoding.UTF8, "application/json");
-        var httpResponse = await this.HttpRequestService.PostAsync(ApiEndpoints.GraphQl, null, content);
+      Id = id,
+      AlarmTime = alarmTimestamp,
+      ExpirationTime = alarmTimestamp.AddSeconds(this.AlarmSettings.KeepMonitorTurnedOnInSec),
+      ReceivedTime = DateTime.UtcNow,
+    };
+  }
 
-        if (!httpResponse.IsSuccessStatusCode)
-        {
-            this.Logger.LogWarning("Failed to send GraphQL request. Status code: {StatusCode}",
-                httpResponse.StatusCode);
-            return null;
-        }
-
-        return await httpResponse.Content.ReadAsStringAsync().ConfigureAwait(false);
-    }
-
-    /// <summary>
-    /// Validates the JSON response from the GraphQL request. If the response has not the expected structure,
-    /// the response was not correct.
-    /// </summary>
-    /// <param name="json">The GraphQl Content as JsonDocument.</param>
-    /// <param name="resultsElement">Out value. The Element of the results-array.</param>
-    /// <returns>A boolean value indicating whether the response is valid or not.</returns>
-    private bool ValidateJson(JsonDocument json, out JsonElement resultsElement)
-    {
-        resultsElement = new JsonElement();
-        if (!(json.RootElement.TryGetProperty("data", out var dataElement) &&
-              dataElement.ValueKind == JsonValueKind.Object))
-        {
-            // Log an error if the 'alarms' property is not found or is not an object.
-            this.Logger.LogWarning("Unexpected response format: 'data' property not found or not an object.");
-            return false;
-        }
-
-        if (!(dataElement.TryGetProperty("alarms", out var alarmsElement) &&
-              alarmsElement.ValueKind == JsonValueKind.Object))
-        {
-            // Log an error if the 'alarms' property is not found or is not an object.
-            this.Logger.LogWarning("Unexpected response format: 'alarms' property not found or not an object.");
-            return false;
-        }
-
-        // Check if the 'alarms' property contains a 'results' array with at least one element.
-        if (!(alarmsElement.TryGetProperty("results", out resultsElement) &&
-              resultsElement.ValueKind == JsonValueKind.Array))
-        {
-            // Log an error if the 'results' property is not found or is not an array.
-            this.Logger.LogWarning("Unexpected response format: 'results' property not found or not an array.");
-            return false;
-        }
-
-        return true;
-    }
+  private IReadOnlyCollection<Alarm> FilterAlarms(IReadOnlyCollection<Alarm> allAlarms)
+  {
+    this.Logger.LogDebug("Filtering alarms based on criteria...");
+    return allAlarms;
+  }
 }

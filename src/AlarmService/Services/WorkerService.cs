@@ -5,146 +5,125 @@ using Microsoft.Extensions.Options;
 
 namespace AlarmService.Services;
 
+using global::AlarmService.Dtos;
+using global::AlarmService.Services.Interfaces;
+
 /// <summary>
-/// The WorkerService is a background service that periodically checks for alarms
+/// The WorkerService is a background service that periodically checks for alarms and controls the LG webOS TV
+/// using the LgWebOsService to turn the display on/off based on alarm activity.
 /// </summary>
 public class WorkerService : BackgroundService
 {
-    /// <summary>
-    /// Gets or sets the logger for the <see cref="WorkerService"/>.
-    /// </summary>
-    private ILogger<WorkerService> Logger { get; set; }
+  /// <summary>
+  /// List that stores all current active alarms.
+  /// </summary>
+  private List<DetectedAlarm> currentActiveAlarms = new();
 
-    /// <summary>
-    /// Gets or sets the alarm settings.
-    /// </summary>
-    private AlarmSettings AlarmSettings { get; set; }
+  /// <summary>
+  /// Gets or sets the logger for the <see cref="WorkerService"/>.
+  /// </summary>
+  private ILogger<WorkerService> Logger { get; set; }
 
-    /// <summary>
-    /// Gets or sets the companion settings that are used to connect to the companion service.
-    /// </summary>
-    private CompanionSettings CompanionSettings { get; set; }
+  /// <summary>
+  /// Gets or sets the alarm settings.
+  /// </summary>
+  private AlarmSettings AlarmSettings { get; set; }
 
-    /// <summary>
-    /// Gets or sets the companion service that is responsible for detecting alarms.
-    /// </summary>
-    private CompanionService CompanionService { get; set; }
+  /// <summary>
+  /// Gets or sets the companion settings that are used to connect to the companion service.
+  /// </summary>
+  private CompanionSettings CompanionSettings { get; set; }
 
-    /// <summary>
-    /// Gets or sets the browser service that is responsible for checking if the expected URL is open.
-    /// </summary>
-    private BrowserService BrowserService { get; set; }
+  private TvSettings TvSettings { get; set; }
 
-    /// <summary>
-    /// Gets or sets the CEC service that is responsible for handling CEC commands.
-    /// </summary>
-    private CecService CecService { get; set; }
+  /// <summary>
+  /// Gets or sets the browser service that is responsible for checking if the expected URL is open.
+  /// </summary>
+  private BrowserService BrowserService { get; set; }
 
-    public WorkerService(
-        ILogger<WorkerService> logger,
-        IOptions<AlarmSettings> settings,
-        IOptions<CompanionSettings> companionSettings,
-        CompanionService companionService,
-        BrowserService browserService,
-        CecService cecService)
+  /// <summary>
+  /// Gets or sets the LG webOS service that is responsible for controlling the TV.
+  /// </summary>
+  private ITvService LgTvService { get; set; }
+
+  private AlarmService AlarmService { get; }
+
+  public WorkerService(
+    ILogger<WorkerService> logger,
+    IOptions<AlarmSettings> settings,
+    IOptions<CompanionSettings> companionSettings,
+    IOptions<TvSettings> tvSettings,
+    AlarmService alarmService,
+    BrowserService browserService,
+    ITvService lgTvService)
+  {
+    this.Logger = logger;
+    this.AlarmSettings = settings.Value;
+    this.CompanionSettings = companionSettings.Value;
+    this.TvSettings = tvSettings.Value;
+    this.AlarmService = alarmService;
+    this.BrowserService = browserService;
+    this.LgTvService = lgTvService;
+
+  }
+
+  /// <summary>
+  /// Executes the worker service
+  /// </summary>
+  /// <param name="stoppingToken">The cancellation token.</param>
+  protected override async Task ExecuteAsync(CancellationToken stoppingToken)
+  {
+    await this.SetupWorkerService(stoppingToken);
+
+    while (!stoppingToken.IsCancellationRequested)
     {
-        this.Logger = logger;
-        this.AlarmSettings = settings.Value;
-        this.CompanionSettings = companionSettings.Value;
-        this.CompanionService = companionService;
-        this.BrowserService = browserService;
-        this.CecService = cecService;
+      var activeAlarms = await this.AlarmService.GetAlarms();
+
+      if (activeAlarms.Count > 0)
+      {
+        this.currentActiveAlarms.AddRange(activeAlarms);
+        if (!await this.LgTvService.IsScreenOnAsync(stoppingToken))
+        {
+          await this.LgTvService.TurnOnAsync(stoppingToken);
+        }
+      }
+
+      // check if tv has to be turned off
+      this.currentActiveAlarms.RemoveAll(a => a.ExpirationTime < DateTime.Now);
+
+      if (this.currentActiveAlarms.Count == 0 
+          && await this.LgTvService.IsScreenOnAsync(stoppingToken))
+      {
+        await this.LgTvService.TurnOffAsync(stoppingToken);
+      }
+
+      Thread.Sleep(this.AlarmSettings.GetRequestIntervalInMilliseconds());
     }
 
-    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
+  }
+
+  private async Task SetupWorkerService(CancellationToken stoppingToken)
+  {
+    if (!await this.BrowserService.IsExpectedUrlOpenAsync(CompanionConstants.DashboardUrl))
     {
-        if (await this.BrowserService.IsExpectedUrlOpenAsync(CompanionConstants.DashboardUrl) is false)
-        {
-            this.Logger.LogInformation("Expected URL is not open, starting dashboard.");
-            this.StartDashboard();
-        }
-
-        while (!stoppingToken.IsCancellationRequested)
-        {
-            var detectedAlarms = await this.CompanionService.CheckForAlarms().ConfigureAwait(false);
-
-            if (detectedAlarms is not null && detectedAlarms.Any())
-            {
-                this.Logger.LogInformation("Detected {Count} alarms.", detectedAlarms.Count);
-                var activeAlarm = false;
-                foreach (var alarm in detectedAlarms)
-                {
-                    this.Logger.LogInformation("Alarm: {Alarm}", alarm);
-
-                    if (alarm.ExpirationTime.CompareTo(DateTime.Now).Equals(1))
-                    {
-                        this.Logger.LogDebug("Alarm is still active, turning on monitor if not already on.");
-                        activeAlarm = true;
-                        if (!await this.CecService.IsMonitorActive().ConfigureAwait(false))
-                        {
-                            this.Logger.LogInformation("Alarm is active and Monitor off, turning on monitor.");
-                            this.CecService.TurnOn();
-                        }
-                        else
-                        {
-                            this.Logger.LogDebug("Alarm is active and Monitor on.");
-                        }
-                    }
-                    else
-                    {
-                        this.Logger.LogInformation(
-                            $"Alarm has expired, monitor will be turned off after the configured time. Expiration: {alarm.ExpirationTime}, now: {DateTime.Now}");
-                    }
-
-                    if (!activeAlarm && await this.CecService.IsMonitorActive().ConfigureAwait(false))
-                    {
-                        this.Logger.LogDebug("Alarm expired, turning off monitor.");
-                        this.CecService.TurnOff();
-                    }
-                    else if (!activeAlarm)
-                    {
-                        this.Logger.LogInformation("Alarm expired, monitor is off.");
-                    }
-                    else if (activeAlarm && await this.CecService.IsMonitorActive().ConfigureAwait(false))
-                    {
-                        this.Logger.LogDebug("Active alarm detected, monitor is on.");
-                    }
-                    else
-                    {
-                        this.Logger.LogWarning("Something went wrong. Active alarm is true.");
-                    }
-                }
-            }
-            else
-            {
-                this.Logger.LogInformation("No alarms detected.");
-                if (await this.CecService.IsMonitorActive().ConfigureAwait(false))
-                {
-                    this.Logger.LogDebug("No active alarms, turning off monitor.");
-                    this.CecService.TurnOff();
-                }
-                else
-                {
-                    this.Logger.LogDebug("No active alarms, monitor is already off.");
-                }
-            }
-        }
-
-        Thread.Sleep(this.AlarmSettings.GetRequestIntervalInMilliseconds());
+      this.Logger.LogInformation("Expected URL is not open, starting dashboard.");
+      this.StartDashboard();
     }
 
+    await this.LgTvService.ConnectAsync(this.TvSettings.IpAddress, stoppingToken);
+  }
 
-    private void StartDashboard()
+  private void StartDashboard()
+  {
+    try
     {
-        try
-        {
-            var dashboardUrl =
-                CompanionConstants.GetFullDashboardUrl(CompanionSettings.AccessToken, CompanionSettings.DashboardToken);
-            Process.Start("bash", $"-c \"chromium --app={dashboardUrl} --start-fullscreen\"");
-        }
-        catch (Exception ex)
-        {
-            this.Logger.LogError(ex, "Error while launching the Bergwacht Companion Dashboard.");
-        }
+      var dashboardUrl =
+        CompanionConstants.GetFullDashboardUrl(CompanionSettings.AccessToken, CompanionSettings.DashboardToken);
+      Process.Start("bash", $"-c \"chromium --app={dashboardUrl} --start-fullscreen\"");
     }
+    catch (Exception ex)
+    {
+      this.Logger.LogError(ex, "Error while launching the Bergwacht Companion Dashboard.");
+    }
+  }
 }
