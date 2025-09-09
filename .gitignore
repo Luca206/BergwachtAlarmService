@@ -1,5 +1,6 @@
 # Ignore local secrets
 src/AlarmService/secrets.local.json
+src/AlarmService/ConfigFiles
 
 # Build outputs
 bin/
@@ -7,3 +8,5 @@ obj/
 **/bin/
 **/obj/
 logs/
+deploy/AlarmService
+src/.idea
