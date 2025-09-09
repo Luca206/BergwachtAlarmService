@@ -7,7 +7,7 @@ public class FilterSettings
     /// <summary>
     /// Gets or sets the file path to the filter configuration file.
     /// </summary>
-    public string FilterFilePath { get; set; } = string.Empty;
+    public required string FilterFilePath { get; set; }
     
     /// <summary>
     /// Gets or sets a collection of filter entries that define the filtering logic.

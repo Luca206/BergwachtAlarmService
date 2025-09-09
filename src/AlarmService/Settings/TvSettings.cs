@@ -8,11 +8,11 @@ namespace AlarmService.Settings
     /// <summary>
     /// IPv4/IPv6 address or hostname of the TV running webOS.
     /// </summary>
-    public string IpAddress { get; set; }
+    public string IpAddress { get; set; } = string.Empty;
     
     /// <summary>
     /// Optional MAC address of the TV. Reserved for future Wake-on-LAN scenarios.
     /// </summary>
-    public string MacAddress { get; set; }
+    public string MacAddress { get; set; } = string.Empty;
   }
 }

@@ -1,0 +1,21 @@
+{
+  "GraphQl": {
+    "BaseUrl": "BaseUrl",
+    "AccessToken": "AccessToken"
+  },
+  "TvConfig":  {
+    "IpAddress": "IpAddress",
+    "MacAddress": "MacAddress"
+  },
+  "Dashboard": {
+    "BaseUrl": "BaseUrl",
+    "DashboardPath": "dashboard",
+    "AccessToken": "AccessToken",
+    "DashboardToken": "DashboardToken"
+  },
+  "WorkerConfig": {
+    "RequestApiForNewAlarmsEverySec": 60,
+    "IntervalToCheckForAlarmsInSec": 14400,
+    "KeepMonitorTurnedOnInSec": 1800
+  }
+}
