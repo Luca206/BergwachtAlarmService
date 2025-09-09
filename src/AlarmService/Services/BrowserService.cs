@@ -1,4 +1,6 @@
 using System.Net.Http.Json;
+using AlarmService.Settings;
+using Microsoft.Extensions.Options;
 
 namespace AlarmService.Services;
 
@@ -12,17 +14,23 @@ public class BrowserService
     
     private HttpClient HttpClient { get; set; }
     
-    public BrowserService(ILogger<BrowserService> logger, HttpClient httpClient)
+    private DashboardSettings DashboardSettings { get; set; }
+    
+    public BrowserService(
+        ILogger<BrowserService> logger,
+        HttpClient httpClient,
+        IOptions<DashboardSettings> dashboardSettings)
     {
         this.Logger = logger;
         this.HttpClient = httpClient;
+        this.DashboardSettings = dashboardSettings.Value;
     }
     
     public async Task<bool> IsExpectedUrlOpenAsync(string expectedUrl)
     {
         try
         {
-            var tabs = await HttpClient.GetFromJsonAsync<List<ChromiumTab>>("https://pages.services.bergwacht-bayern.org/dashboard");
+            var tabs = await HttpClient.GetFromJsonAsync<List<ChromiumTab>>(new Uri(this.DashboardSettings.BaseUrl, this.DashboardSettings.DashboardPath));
             if (tabs == null)
             {
                 return false;

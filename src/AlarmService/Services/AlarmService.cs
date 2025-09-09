@@ -1,6 +1,6 @@
 namespace AlarmService.Services
 {
-  using global::AlarmService.Dtos;
+  using Dtos;
 
   public class AlarmService
   {

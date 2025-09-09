@@ -22,16 +22,16 @@ public class AlarmFilterService
     /// <summary>
     /// Gets or sets the settings for alarms.
     /// </summary>
-    private AlarmSettings AlarmSettings { get; set; }
+    private WorkerSettings WorkerSettings { get; set; }
 
     public AlarmFilterService(
         ILogger<AlarmFilterService> logger,
         IOptions<FilterSettings> filterSettings,
-        IOptions<AlarmSettings> alarmSettings)
+        IOptions<WorkerSettings> workerSettings)
     {
         this.Logger = logger;
         this.FilterSettings = filterSettings.Value;
-        this.AlarmSettings = alarmSettings.Value;
+        this.WorkerSettings = workerSettings.Value;
     }
 
     public virtual IReadOnlyCollection<DetectedAlarm> FilterAlarmsOfJsonElement(JsonElement detectedAlarmsJson)
@@ -275,7 +275,7 @@ public class AlarmFilterService
             Id = id,
             AlarmTime = alarmTimeStamp,
             ReceivedTime = DateTime.UtcNow,
-            ExpirationTime = alarmTimeStamp.AddSeconds(this.AlarmSettings.KeepMonitorTurnedOnInSec)
+            ExpirationTime = alarmTimeStamp.AddSeconds(this.WorkerSettings.KeepMonitorTurnedOnInSec)
         };
     }
 

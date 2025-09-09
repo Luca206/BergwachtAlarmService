@@ -28,17 +28,17 @@ public class CompanionService
   /// <summary>
   /// Gets or sets the settings for alarms.
   /// </summary>
-  private AlarmSettings AlarmSettings { get; set; }
+  private WorkerSettings WorkerSettings { get; set; }
 
   public CompanionService(
     ILogger<CompanionService> logger,
     GraphQlQueryService graphQlQueryService,
     IOptions<FilterSettings> filterSettings,
-    IOptions<AlarmSettings> alarmSettings)
+    IOptions<WorkerSettings> workerSettings)
   {
     this.Logger = logger;
     this.GraphQlQueryService = graphQlQueryService;
-    this.AlarmSettings = alarmSettings.Value;
+    this.WorkerSettings = workerSettings.Value;
     this.FilterSettings = filterSettings.Value;
 
   }
@@ -89,7 +89,7 @@ public class CompanionService
     {
       Id = id,
       AlarmTime = alarmTimestamp,
-      ExpirationTime = alarmTimestamp.AddSeconds(this.AlarmSettings.KeepMonitorTurnedOnInSec),
+      ExpirationTime = alarmTimestamp.AddSeconds(this.WorkerSettings.KeepMonitorTurnedOnInSec),
       ReceivedTime = DateTime.UtcNow,
     };
   }

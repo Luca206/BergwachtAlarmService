@@ -9,13 +9,16 @@ public class HttpRequestService
     
     private HttpClient HttpClient { get; set; }
     
-    private CompanionSettings CompanionSettings { get; set; }
+    private GraphQlSettings GraphQlSettings { get; set; }
     
-    public HttpRequestService(HttpClient httpClient, ILogger<HttpRequestService> logger, IOptions<CompanionSettings> settings)
+    public HttpRequestService(
+        HttpClient httpClient,
+        ILogger<HttpRequestService> logger,
+        IOptions<GraphQlSettings> settings)
     {
         this.Logger = logger;
         this.HttpClient = httpClient;
-        this.CompanionSettings = settings.Value;
+        this.GraphQlSettings = settings.Value;
     }
     
     public async Task<HttpResponseMessage> GetAsync(
@@ -57,9 +60,9 @@ public class HttpRequestService
         Dictionary<string, string>? parameters,
         HttpContent? content = null)
     {
-        var completeRequestUrl = this.BuildCompleteRequestUrl(this.CompanionSettings.GetBaseUri(), endpoint, parameters);
+        var completeRequestUrl = this.BuildCompleteRequestUrl(this.GraphQlSettings.BaseUrl, endpoint, parameters);
         using var request = new HttpRequestMessage(method, completeRequestUrl);
-        request.Headers.Add("Authorization", $"Bearer {this.CompanionSettings.AccessToken}");
+        request.Headers.Add("Authorization", $"Bearer {this.GraphQlSettings.AccessToken}");
         request.Content = content;
         var response = await this.HttpClient.SendAsync(request).ConfigureAwait(false);
 
