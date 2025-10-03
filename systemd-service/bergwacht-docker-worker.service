@@ -1,0 +1,22 @@
+[Unit]
+Description=Bergwacht Worker Service (.NET Docker Container)
+After=network.target docker.service
+Requires=docker.service
+
+[Service]
+Type=simple
+# Wichtig: Legen Sie hier den Linux-Benutzer fest, der den Container starten soll
+User=<IHR_LINUX_BENUTZERNAME> 
+Group=<IHR_LINUX_BENUTZERNAME>
+
+Restart=always
+RestartSec=5s
+
+# Docker-Befehl zum Starten des Containers
+ExecStart=/usr/bin/docker run --rm --name bergwacht-docker-worker -v ${HOST_CONFIG_PATH}:/configs my-bergwacht-service:latest
+
+
+ExecStop=/usr/bin/docker stop bergwacht-docker-worker
+
+[Install]
+WantedBy=multi-user.target
