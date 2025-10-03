@@ -56,6 +56,7 @@ public class LgTvService : ITvService
         try
         {
             await _ws.ConnectAsync(uri, cancellationToken).ConfigureAwait(false);
+            this._logger.LogInformation("Connected to LG webOS TV at {Uri}", uri);
         }
         catch (WebSocketException e)
         {
@@ -295,6 +296,7 @@ public class LgTvService : ITvService
         catch (OperationCanceledException)
         {
             // normal during shutdown
+            this._logger.LogInformation("Operation cancelled, stopping LG webOS receive loop.");
         }
         catch (Exception ex)
         {
