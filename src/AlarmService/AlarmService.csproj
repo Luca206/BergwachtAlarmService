@@ -3,8 +3,7 @@
     <PropertyGroup>
         <OutputType>exe</OutputType>
         <TargetFramework>net9.0</TargetFramework>
-        <PublishSingleFile>true</PublishSingleFile>
-        <SelfContained>true</SelfContained>
+        <SelfContained>false</SelfContained>
         <RuntimeIdentifier>linux-x64</RuntimeIdentifier>
         <PublishTrimmed>false</PublishTrimmed>
         <IncludeAllContentForSelfExtract>true</IncludeAllContentForSelfExtract>
