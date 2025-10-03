@@ -11,7 +11,9 @@ public class BrowserService
     /// </summary>
     private ILogger<BrowserService> Logger { get; set; }
     
-    
+    /// <summary>
+    /// Gets or sets the HTTP client used to communicate with the browser's debugging endpoint.
+    /// </summary>
     private HttpClient HttpClient { get; set; }
     
     private DashboardSettings DashboardSettings { get; set; }

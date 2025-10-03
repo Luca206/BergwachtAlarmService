@@ -70,7 +70,7 @@ public class WorkerService : BackgroundService
     /// <param name="stoppingToken">The cancellation token.</param>
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        // await this.SetupWorkerService(stoppingToken);
+        await this.SetupWorkerService(stoppingToken);
 
         while (!stoppingToken.IsCancellationRequested)
         {
@@ -94,6 +94,7 @@ public class WorkerService : BackgroundService
                 await this.LgTvService.TurnOffAsync(stoppingToken);
             }
 
+            this.Logger.LogInformation("Sleeping for {Interval}ms", this.WorkerSettings.GetRequestIntervalInMilliseconds());
             Thread.Sleep(this.WorkerSettings.GetRequestIntervalInMilliseconds());
         }
     }

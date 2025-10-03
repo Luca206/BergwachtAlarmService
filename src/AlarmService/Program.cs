@@ -137,7 +137,7 @@ public class Program
         Directory.CreateDirectory("logs");
 
         var loggerConfiguration = new LoggerConfiguration()
-            .MinimumLevel.Information()
+            .MinimumLevel.Verbose()
             .Enrich.FromLogContext()
             .WriteTo.Console()
             .WriteTo.File(
