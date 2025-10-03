@@ -100,11 +100,20 @@ public class WorkerService : BackgroundService
 
     private async Task SetupWorkerService(CancellationToken stoppingToken)
     {
-        if (!await this.BrowserService.IsExpectedUrlOpenAsync(
-                new Uri(DashboardSettings.BaseUrl, DashboardSettings.DashboardPath).ToString()))
+        if (this.DashboardSettings.UseBrowserService)
         {
-            this.Logger.LogInformation("Expected URL is not open, starting dashboard.");
-            this.StartDashboard();
+            if (!await this.BrowserService.IsExpectedUrlOpenAsync(
+                    new Uri(DashboardSettings.BaseUrl, DashboardSettings.DashboardPath).ToString()))
+            {
+                this.Logger.LogInformation("Expected URL is not open, starting dashboard.");
+
+
+                this.StartDashboard();
+            }
+        }
+        else
+        {
+            this.Logger.LogInformation("Browser service is disabled, skipping check for expected URL.");
         }
 
         await this.LgTvService.ConnectAsync(this.TvSettings.IpAddress, stoppingToken);
